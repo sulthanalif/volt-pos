@@ -31,7 +31,7 @@ class Table extends Model
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($table) {
             if (empty($table->qr_code)) {
                 // Generate random qr_code
@@ -40,8 +40,8 @@ class Table extends Model
                 $table->qr_code = "TBL{$date}{$random}";
 
                 // Generate QR code image
-                $qrCode = (new DNS2D())->getBarcodePNG($table->qr_code, 'QRCODE', 5, 5);
-                
+                $qrCode = (new DNS2D())->getBarcodePNG(config('app.url'). '?code=' .base64_encode($table->qr_code), 'QRCODE', 5, 5);
+
                 // Ensure directory exists
                 $directory = 'qrcodes';
                 if (!Storage::disk('public')->exists($directory)) {

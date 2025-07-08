@@ -11,6 +11,18 @@
     {{-- Cropper.js --}}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
+
+    {{-- Flatpickr  --}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    {{-- It will not apply locale yet  --}}
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/id.js"></script>
+
+    {{-- You need to set here the default locale or any global flatpickr settings--}}
+    <script>
+        flatpickr.localize(flatpickr.l10ns.id);
+    </script>
 </head>
 <body class="min-h-screen font-sans antialiased bg-base-200">
 
@@ -63,6 +75,6 @@
     {{--  TOAST area --}}
     <x-toast />
 
-    
+
 </body>
 </html>

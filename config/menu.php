@@ -23,6 +23,13 @@ return [
             ],
             [
                 'type' => 'item',
+                'title' => 'Additions',
+                'icon' => 'fas.plus',
+                'link' => 'additions',
+                'can'  => 'manage-additions',
+            ],
+            [
+                'type' => 'item',
                 'title' => 'Units',
                 'icon' => 'fas.ruler',
                 'link' => 'units',

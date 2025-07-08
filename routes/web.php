@@ -22,6 +22,7 @@ Route::group(['middleware' => ['auth', 'userAccessLog']], function () {
     Volt::route('/permissions', 'settings.permissions.index')->middleware('can:manage-permissions')->name('permissions');
 
     Volt::route('/categories', 'categories.index')->middleware('can:manage-categories')->name('categories');
+    Volt::route('/additions', 'additions.index')->middleware('can:manage-additions')->name('additions');
     Volt::route('/units', 'units.index')->middleware('can:manage-units')->name('units');
     Volt::route('/suppliers', 'suppliers.index')->middleware('can:manage-suppliers')->name('suppliers');
     Volt::route('/products', 'products.index')->middleware('can:manage-products')->name('products');

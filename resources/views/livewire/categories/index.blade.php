@@ -1,11 +1,13 @@
 <?php
 
 use Mary\Traits\Toast;
+use App\Models\Addition;
 use App\Models\Category;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
 use App\Traits\CreateOrUpdate;
 use Livewire\Attributes\Title;
+use Illuminate\Support\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 new #[Title('Categories')] class extends Component {
@@ -20,6 +22,28 @@ new #[Title('Categories')] class extends Component {
     public array $sortBy = ['column' => 'name', 'direction' => 'asc'];
 
     public string $name = '';
+    public array $addition_ids = [];
+
+    public Collection $additions;
+
+    public function mount(): void
+    {
+        $this->searchAddition();
+    }
+
+    public function searchAddition(string $value = '')
+    {
+        // Besides the search results, you must include on demand selected option
+        $selectedOption = Addition::whereIn('id', $this->addition_ids)->get();
+
+        $this->additions = Addition::query()
+            ->where('label', 'like', "%$value%")
+            ->take(5)
+            ->orderBy('label')
+            ->get()
+            ->merge($selectedOption);
+
+    }
 
     public function save(): void
     {
@@ -29,6 +53,9 @@ new #[Title('Categories')] class extends Component {
             validationRules: [
                 'name' => ['required', 'unique:categories,name,' . $this->recordId],
             ],
+            afterSave: function ($model, $component) {
+                $model->additions()->sync($component->addition_ids ?? []);
+            }
         );
         $this->reset('name');
     }
@@ -73,7 +100,7 @@ new #[Title('Categories')] class extends Component {
 
         $js('create', () => {
             deleteButton.style.display = 'none';
-            
+
             $wire.recordId = null;
             $wire.name = '';
             $wire.drawer = true;
@@ -81,13 +108,13 @@ new #[Title('Categories')] class extends Component {
 
         $js('edit', (category) => {
             deleteButton.style.display = 'block';
-            
+
             $wire.recordId = category.id;
-            $wire.name = category.name; 
+            $wire.name = category.name;
             $wire.drawer = true;
         })
 
-        
+
     </script>
 @endscript
 
@@ -122,13 +149,36 @@ new #[Title('Categories')] class extends Component {
                 <x-input label="Name" wire:model="name"  />
             </div>
 
+            <div>
+                <x-choices
+                label="Additions"
+                wire:model="addition_ids"
+                :options="$additions"
+                placeholder="Search ..."
+                search-function="searchAddition"
+                no-result-text="Ops! Nothing here ..."
+                searchable
+                clearable>
+                @scope('item', $data)
+                    <x-list-item :item="$data" value="label">
+
+                    </x-list-item>
+                @endscope
+
+                {{-- Selection slot--}}
+                @scope('selection', $data)
+                    {{ $data->label }}
+                @endscope
+                </x-choices>
+            </div>
+
             <x-slot:actions>
                 @can('delete-category')
                     <div id="delete-button" style="display: none;">
                         <x-button label="Delete" wire:click="delete" class="btn-error text-white" responsive icon="fas.trash" wire:confirm="Are you sure?" spinner="delete" />
                     </div>
                 @endcan
-                
+
                 <x-button label="Save" responsive icon="fas.save" type="submit" spinner="save" class="btn-primary" />
             </x-slot:actions>
         </x-form>

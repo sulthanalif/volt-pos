@@ -46,6 +46,10 @@ class DatabaseSeeder extends Seeder
             'manage-tables',
             'create-table',
             'delete-table',
+
+            'manage-additions',
+            'create-addition',
+            'delete-addition',
         ];
 
         foreach ($permissions as $permission) {
