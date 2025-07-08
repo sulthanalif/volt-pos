@@ -1,0 +1,93 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+
+
+@theme {
+    --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+
+
+/**
+    The lines above are intact.
+    The lines below were added by maryUI installer.
+*/
+
+/** daisyUI */
+@plugin "daisyui" {
+    themes: light --default, dark --prefersdark;
+}
+
+
+
+@plugin "daisyui/theme" {
+    name: "event";
+    default: false;
+    prefersdark: false;
+    color-scheme: "light";
+    --color-base-100: oklch(98% 0.003 247.858);
+    --color-base-200: oklch(96% 0.007 247.896);
+    --color-base-300: oklch(92% 0.013 255.508);
+    --color-base-content: oklch(20% 0.042 265.755);
+    --color-primary: oklch(68% 0.169 237.323);
+    --color-primary-content: oklch(97% 0.013 236.62);
+    --color-secondary: oklch(62% 0.214 259.815);
+    --color-secondary-content: oklch(97% 0.014 254.604);
+    --color-accent: oklch(60% 0.25 292.717);
+    --color-accent-content: oklch(96% 0.016 293.756);
+    --color-neutral: oklch(37% 0.044 257.287);
+    --color-neutral-content: oklch(98% 0.003 247.858);
+    --color-info: oklch(74% 0.16 232.661);
+    --color-info-content: oklch(29% 0.066 243.157);
+    --color-success: oklch(84% 0.238 128.85);
+    --color-success-content: oklch(27% 0.072 132.109);
+    --color-warning: oklch(75% 0.183 55.934);
+    --color-warning-content: oklch(26% 0.079 36.259);
+    --color-error: oklch(71% 0.202 349.761);
+    --color-error-content: oklch(28% 0.109 3.907);
+    --radius-selector: 0.25rem;
+    --radius-field: 1rem;
+    --radius-box: 0.25rem;
+    --size-selector: 0.25rem;
+    --size-field: 0.25rem;
+    --border: 1px;
+    --depth: 0;
+    --noise: 0;
+  }
+  
+  
+
+
+/* Tambahkan ini untuk memastikan font Inter diterapkan secara global */
+html, body {
+    font-family: var(--font-sans);
+}
+
+
+
+/* maryUI */
+@source "../../vendor/robsontenorio/mary/src/View/Components/**/*.php";
+
+/* Theme toggle */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/**
+* Paginator - Traditional style
+* Because Laravel defaults does not match well the design of daisyUI.
+*/
+
+.mary-table-pagination span[aria-current="page"] > span {
+    @apply bg-primary text-base-100
+}
+
+.mary-table-pagination button {
+    @apply cursor-pointer
+}
