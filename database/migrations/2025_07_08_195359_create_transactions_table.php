@@ -31,7 +31,7 @@ return new class extends Migration
             $table->decimal('price', 10, 2);
             $table->integer('qty');
             $table->decimal('sub_price', 10, 2);
-            $table->json('extra')->nullable();
+            $table->json('additions')->nullable();
             $table->timestamps();
         });
     }

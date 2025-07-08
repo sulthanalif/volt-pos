@@ -30,6 +30,8 @@ new #[Layout('components.layouts.fe')] class extends Component {
     public ?int $category_id = null;
     public Collection $categories;
 
+    public array $additions = [];
+
     public function mount(): void
     {
         $this->date = now();
@@ -37,7 +39,7 @@ new #[Layout('components.layouts.fe')] class extends Component {
         if ($table_code) {
             $this->table = $table_code;
             $this->allowTransaction = true;
-            $this->dispatch('remove-url-param', param: 'code');
+            // $this->dispatch('remove-url-param', param: 'code');
         } else {
             $this->modalWarning = true;
         }
@@ -238,10 +240,24 @@ new #[Layout('components.layouts.fe')] class extends Component {
 
             actions.innerHTML = `
             <div x-data='${JSON.stringify({ product })}'>
-                <button class="btn btn-primary" @click="$js.addToCart(product)">
-                    <x-icon name="o-shopping-cart" class="w-4 h-4 inline" /> Add to Cart
-                </button>
-            </div>
+                <div x-data="{check: false}" x-effect="check = $wire.cart.some(item => item.id === product.id)">
+                    <button
+                        @click="
+                            $js.addToCart(product, () => check = true)
+                        "
+                        x-show="!check"
+                        class="btn-primary btn"
+                    >
+                        <x-icon name="o-shopping-cart" class="w-4 h-4 inline" /> Add to Cart
+                    </button>
+                    <x-button
+                        label="Already in Cart"
+                        x-show="check"
+                        icon="o-check-circle"
+                        class="btn-success btn"
+                    />
+                </div>
+                </div>
             `;
         });
 
@@ -254,6 +270,7 @@ new #[Layout('components.layouts.fe')] class extends Component {
                     name: product.name,
                     price: product.price_sell,
                     qty: 1,
+                    additions: additions,
                     total: product.price_sell,
                 });
             } else {
@@ -354,7 +371,7 @@ new #[Layout('components.layouts.fe')] class extends Component {
                                 <div x-show="show" x-data="{ check: false }" x-effect="check = $wire.cart.some(item => item.id === {{ $product->id }})">
                                     <x-button
                                         @click="
-                                            $js.addToCart({{ $product }}, () => check = true)
+                                            $js.detail({{ $product }}, () => check = true)
                                         "
                                         x-show="!check"
                                         icon="o-shopping-cart"
@@ -390,7 +407,7 @@ new #[Layout('components.layouts.fe')] class extends Component {
             <x-input label="Name" wire:model='customer_name' inline placeholder="Name" required />
         </div>
 
-        <div class="divide-y" id="cart-items">
+        <div class="divide-y" >
 
         </div>
 
@@ -418,6 +435,9 @@ new #[Layout('components.layouts.fe')] class extends Component {
                     <span class="text-sm text-gray-500" id="modal-product-unit"></span>
                 </div>
             </div>
+        </div>
+        <div class="space-y-4" id="addition">
+
         </div>
 
         <x-slot:actions>
