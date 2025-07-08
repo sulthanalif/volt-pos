@@ -153,6 +153,8 @@ new #[Layout('components.layouts.fe')] class extends Component {
             const description = document.getElementById('modal-product-description');
             const price = document.getElementById('modal-product-price');
             const unit = document.getElementById('modal-product-unit');
+            const actions = document.getElementById('modal-product-actions');
+
 
             image.src = product.image ? '/storage/' + product.image : 'img/upload.png';
             name.innerText = product.name;
@@ -162,6 +164,14 @@ new #[Layout('components.layouts.fe')] class extends Component {
             unit.innerText = product.unit_name;
 
             $wire.modalDetail = true;
+
+            actions.innerHTML = `
+            <div x-data='${JSON.stringify({ product })}'>
+                <button class="btn btn-primary" @click="$js.addToCart(product)">
+                    <x-icon name="o-shopping-cart" class="w-4 h-4 inline" /> Add to Cart
+                </button>
+            </div>
+            `;
         });
 
         $js('addToCart', (product) => {
@@ -296,8 +306,8 @@ new #[Layout('components.layouts.fe')] class extends Component {
         </div>
 
         <x-slot:actions>
-            <div class="flex justify-between w-full">
-                <x-button label="Add to Cart" icon="o-shopping-cart" class="btn-primary" />
+            <div class="flex justify-between w-full" id="modal-product-actions">
+                
             </div>
         </x-slot:actions>
     </x-modal>
