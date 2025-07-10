@@ -17,8 +17,8 @@ return new class extends Migration
             $table->dateTime('date');
             $table->string('customer_name');
             $table->decimal('total_price', 10, 2);
-            $table->string('action_by');
-            $table->foreignId('cashier_id');
+            $table->foreignId('action_by')->nullable()->constrained('users')->onDelete('cascade');
+            $table->foreignId('cashier_id')->nullable()->constrained('users')->onDelete('cascade');
             $table->boolean('is_payment')->default(false);
             $table->enum('status', ['approved', 'rejected', 'cancelled', 'pending'])->default('pending');
             $table->timestamps();

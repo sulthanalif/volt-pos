@@ -21,6 +21,19 @@ class Transaction extends Model
         'status',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->invoice)) {
+                $yearMonth = date('Ym');
+                $randomStr = substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 10);
+                $model->invoice = $yearMonth . $randomStr;
+            }
+        });
+    }
+
     public function actionBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'action_by', 'id');
