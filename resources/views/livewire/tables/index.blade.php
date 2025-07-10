@@ -26,6 +26,13 @@ new #[Title('Tables')] class extends Component {
     public int $capacity = 0;
     public bool $status = true;
 
+    public function useQRCode(): void
+    {
+        $qrCode = base64_encode($this->qr_code);
+
+        $this->redirect(route('index', ['code' => $qrCode]), navigate: true);
+    }
+
     public function save(): void
     {
         $this->setModel(new Table());
@@ -177,6 +184,7 @@ new #[Title('Tables')] class extends Component {
             </div>
 
             <x-slot:actions>
+                <x-button label="Use QR Code" responsive icon="fas.qrcode" @click="$wire.useQRCode" spinner="useQRCode" class="btn-primary" />
                 @can('delete-table')
                     <div id="delete-button" style="display: none;">
                         <x-button label="Delete" wire:click="delete" class="btn-error text-white" responsive icon="fas.trash" wire:confirm="Are you sure?" spinner="delete" />

@@ -13,6 +13,7 @@ class Addition extends Model
     protected $fillable = [
         'label',
         'is_required',
+        'is_multiple',
     ];
 
     public function categories(): BelongsToMany

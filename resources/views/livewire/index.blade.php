@@ -60,12 +60,50 @@ new #[Layout('components.layouts.fe')] class extends Component {
 
     public function store(): void
     {
-        //
+        $this->validate([
+            'customer_name' => 'required|string',
+            'date' => 'required|date',
+            'cart' => 'required|array|min:1',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $transaction = \App\Models\Transaction::create([
+                'invoice' => 'INV-' . now()->format('YmdHis'),
+                'date' => $this->date,
+                'customer_name' => $this->customer_name,
+                'total_price' => collect($this->cart)->sum('total'),
+                'action_by' => auth()->user()->name ?? 'guest',
+                'cashier_id' => auth()->id() ?? 1, // Default jika tidak login
+                'is_payment' => false,
+                'status' => 'pending',
+            ]);
+
+            foreach ($this->cart as $item) {
+                $transaction->details()->create([
+                    'product_id' => $item['id'],
+                    'price' => $item['price'],
+                    'qty' => $item['qty'],
+                    'sub_price' => $item['total'],
+                    'additions' => json_encode($item['additions'] ?? []),
+                ]);
+            }
+
+            DB::commit();
+
+            $this->resetCart(); // Kosongkan keranjang
+            $this->dispatch('toast', title: 'Transaction saved successfully.');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            logger()->error($e);
+            $this->dispatch('toast', title: 'Error saving transaction', type: 'error');
+        }
     }
 
     public function products()
     {
         return Product::query()
+            ->with('category.additions.items', 'unit:id,name')
             ->withAggregate('category', 'name')
             ->withAggregate('unit', 'name')
             ->where('status', true)
@@ -130,7 +168,7 @@ new #[Layout('components.layouts.fe')] class extends Component {
             const item = cart.find(i => i.id === id);
             if (item) {
                 item.qty++;
-                item.total = item.qty * item.price;
+                item.total = item.qty * (item.price + (item.additions?.reduce((sum, a) => sum + a.price, 0) || 0));
             }
             $js.cart();
         });
@@ -140,7 +178,7 @@ new #[Layout('components.layouts.fe')] class extends Component {
             const item = cart.find(i => i.id === id);
             if (item && item.qty > 1) {
                 item.qty--;
-                item.total = item.qty * item.price;
+                item.total = item.qty * (item.price + (item.additions?.reduce((sum, a) => sum + a.price, 0) || 0));
             } else {
                 $js.removeFromCart(id);
                 return;
@@ -160,13 +198,17 @@ new #[Layout('components.layouts.fe')] class extends Component {
 
         $js('drawerCart', () => {
             $wire.drawerCart = !$wire.drawerCart;
-            $js.cart();
-        })
+            
+            // Tunggu sampai DOM render (drawer muncul)
+            requestAnimationFrame(() => {
+                $js.cart();
+            });
+        });
+
 
         $js('cart', () => {
             const cartList = document.getElementById('cart-items');
             const cart = $wire.cart;
-
 
             if (!cart || cart.length === 0) {
                 cartList.innerHTML = `
@@ -178,37 +220,52 @@ new #[Layout('components.layouts.fe')] class extends Component {
                 return;
             }
 
-            cartList.innerHTML = cart.map(item => `
-                <div class="py-4 border-b">
-                    <div class="text-sm text-gray-500 mb-2">
-                        <span>Item Details:</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="font-medium">${item.name}</h3>
-                            <p class="text-sm text-gray-500">Rp ${new Intl.NumberFormat('id-ID').format(item.price)}</p>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <button class="btn btn-sm" @click="$js.decrementQty(${item.id})">
-                                <x-icon name="o-minus" class="w-4 h-4" />
-                            </button>
-                            <span id="qty">${item.qty}</span>
-                            <button class="btn btn-sm" @click="$js.incrementQty(${item.id})">
-                                <x-icon name="o-plus" class="w-4 h-4" />
-                            </button>
-                            <button class="btn btn-sm btn-error" @click="$js.removeFromCart(${item.id})">
-                                <x-icon name="o-trash" class="w-4 h-4" />
-                            </button>
-                        </div>
-                    </div>
-                    <p class="mt-2 text-right font-medium">Total: Rp ${new Intl.NumberFormat('id-ID').format(item.qty * item.price)}</p>
-                </div>
-            `).join('');
+            cartList.innerHTML = cart.map(item => {
+                const additionsHTML = item.additions && item.additions.length > 0
+                    ? `
+                        <ul class="mt-1 text-xs text-gray-500 space-y-1 ml-2 list-disc">
+                            ${item.additions.map(add => `
+                                <li>
+                                    ${add.name} (+Rp ${new Intl.NumberFormat('id-ID').format(add.price)})
+                                </li>
+                            `).join('')}
+                        </ul>
+                    `
+                    : '';
 
-            // Hitung total semua item (jumlah total harga)
-            const total = cart.reduce((acc, item) => acc + (item.qty * item.price), 0);
+                return `
+                    <div class="py-4 border-b">
+                        <div class="text-sm text-gray-500 mb-2">
+                            <span>Item Details:</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="font-medium">${item.name}</h3>
+                                <p class="text-sm text-gray-500">Base Price: Rp ${new Intl.NumberFormat('id-ID').format(item.price)}</p>
+                                ${additionsHTML}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button class="btn btn-sm" @click="$js.decrementQty(${item.id})">
+                                    <x-icon name="o-minus" class="w-4 h-4" />
+                                </button>
+                                <span id="qty">${item.qty}</span>
+                                <button class="btn btn-sm" @click="$js.incrementQty(${item.id})">
+                                    <x-icon name="o-plus" class="w-4 h-4" />
+                                </button>
+                                <button class="btn btn-sm btn-error" @click="$js.removeFromCart(${item.id})">
+                                    <x-icon name="o-trash" class="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                        <p class="mt-2 text-right font-medium">
+                            Total: Rp ${new Intl.NumberFormat('id-ID').format(item.total)}
+                        </p>
+                    </div>
+                `;
+            }).join('');
 
-            // Tambahkan footer dengan total
+            const total = cart.reduce((acc, item) => acc + item.total, 0);
+
             cartList.innerHTML += `
                 <div class="py-4 mt-4 font-semibold">
                     <div class="flex items-center justify-between text-lg">
@@ -219,6 +276,7 @@ new #[Layout('components.layouts.fe')] class extends Component {
             `;
         });
 
+
         $js('detail', (product) => {
             const image = document.getElementById('modal-product-image');
             const name = document.getElementById('modal-product-name');
@@ -227,7 +285,7 @@ new #[Layout('components.layouts.fe')] class extends Component {
             const price = document.getElementById('modal-product-price');
             const unit = document.getElementById('modal-product-unit');
             const actions = document.getElementById('modal-product-actions');
-
+            const additionsField = document.getElementById('addition');
 
             image.src = product.image ? '/storage/' + product.image : 'img/upload.png';
             name.innerText = product.name;
@@ -238,55 +296,143 @@ new #[Layout('components.layouts.fe')] class extends Component {
 
             $wire.modalDetail = true;
 
+            // Ambil cart dari Livewire
+            const cart = $wire.cart || [];
+
+            // Cari item yang sudah ada di cart dengan produk yang sama
+            const existingItems = cart.filter(item => item.id === product.id);
+
+            // Kita akan tampilkan additions sesuai item terakhir yang dipilih (kalau ada)
+            // Kalau mau bisa juga tampilkan additions berdasarkan item pertama, tinggal ubah existingItems[0]
+            let lastSelectedAdditions = [];
+            if (existingItems.length > 0) {
+                // Ambil additions item terakhir (bisa juga diubah sesuai kebutuhan)
+                lastSelectedAdditions = existingItems[existingItems.length - 1].additions || [];
+            }
+
+            let selectedAdditions = [...lastSelectedAdditions]; // clone array supaya bisa dimodifikasi
+
+            const updatePrice = () => {
+                const totalAdditionPrice = selectedAdditions.reduce((sum, item) => sum + item.price, 0);
+                const totalPrice = Math.floor(product.price_sell + totalAdditionPrice);
+                price.innerText = 'Rp.' + new Intl.NumberFormat('id-ID').format(totalPrice);
+            };
+
+            // Render additions dengan status checked sesuai selectedAdditions
+            const additions = product.category.additions.map(addition => {
+                return `
+                    <div class="mt-4">
+                        <label class="font-medium">
+                            ${addition.label}
+                            ${addition.is_required ? '<span class="text-red-500">*</span>' : ''}
+                        </label>
+                        <div class="mt-2 space-y-2">
+                            ${addition.items.map(item => {
+                                // Cek apakah item ini ada di selectedAdditions
+                                const isChecked = selectedAdditions.some(sa => sa.id === item.id);
+                                return `
+                                    <label class="flex items-center justify-between p-2 border rounded-lg">
+                                        <div class="flex items-center gap-2">
+                                            <input 
+                                                type="${addition.is_multiple ? 'checkbox' : 'radio'}" 
+                                                class="${addition.is_multiple ? 'checkbox' : 'radio'} addition-input"
+                                                name="addition_${addition.id}"
+                                                value="${item.id}"
+                                                data-id="${item.id}"
+                                                data-name="${item.name}" 
+                                                data-price="${item.price}"
+                                                ${addition.is_required ? 'required' : ''}
+                                                ${isChecked ? 'checked' : ''}
+                                            
+                                            />
+                                            <span>${item.name}</span>
+                                        </div>
+                                        <span class="text-sm text-gray-600">Rp ${new Intl.NumberFormat('id-ID').format(item.price)}</span>
+                                    </label>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            additionsField.innerHTML = additions;
+
+            // Pasang event listener tambahan jika perlu (biasanya sudah handle di @change di atas)
+
+            additionsField.querySelectorAll('.addition-input').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const isMultiple = input.type === 'checkbox';
+                    const item = {
+                        id: parseInt(input.dataset.id),
+                        name: input.dataset.name,
+                        price: parseFloat(input.dataset.price),
+                    };
+
+                    if (input.checked) {
+                        if (!isMultiple) {
+                            // Buang addition lain dari group yang sama (radio)
+                            selectedAdditions = selectedAdditions.filter(a => a.name !== item.name);
+                        }
+                        selectedAdditions.push(item);
+                    } else {
+                        selectedAdditions = selectedAdditions.filter(a => a.id !== item.id);
+                    }
+
+                    updatePrice();
+                });
+            });
+
             actions.innerHTML = `
-            <div x-data='${JSON.stringify({ product })}'>
-                <div x-data="{check: false}" x-effect="check = $wire.cart.some(item => item.id === product.id)">
-                    <button
-                        @click="
-                            $js.addToCart(product, () => check = true)
-                        "
-                        x-show="!check"
-                        class="btn-primary btn"
-                    >
-                        <x-icon name="o-shopping-cart" class="w-4 h-4 inline" /> Add to Cart
-                    </button>
-                    <x-button
-                        label="Already in Cart"
-                        x-show="check"
-                        icon="o-check-circle"
-                        class="btn-success btn"
-                    />
-                </div>
+                <div x-data='${JSON.stringify({ product, selectedAdditions })}'>
+                    <div x-data="{check: false}" x-effect="check = $wire.cart.some(item => item.id === product.id)">
+                        <button
+                            @click="
+                                product.selectedAdditions = selectedAdditions;
+                                $js.addToCart(product, () => check = true);
+                            "
+                            x-show="!check"
+                            class="btn-primary btn"
+                        >
+                            <x-icon name='o-shopping-cart' class='w-4 h-4 inline' /> Add to Cart
+                        </button>
+                        <x-button
+                            label='Already in Cart'
+                            x-show='check'
+                            icon='o-check-circle'
+                            class='btn-success btn'
+                        />
+                    </div>
                 </div>
             `;
         });
 
+        // Tambah ke keranjang dan hitung total dengan additions
         $js('addToCart', async (product, done) => {
             const cart = $wire.cart;
+            console.log(product);
+            
 
-            if (cart.length === 0) {
+            const basePrice = product.price_sell;
+            const additions = product.selectedAdditions || [];
+            const additionTotal = additions.reduce((sum, a) => sum + a.price, 0);
+            const totalPrice = basePrice + additionTotal;
+
+            const existingItem = cart.find(item => item.id === product.id);
+
+            if (existingItem) {
+                existingItem.qty++;
+                const additionTotal = existingItem.additions?.reduce((sum, a) => sum + a.price, 0) || 0;
+                existingItem.total = (existingItem.price + additionTotal) * existingItem.qty;
+            } else {
                 cart.push({
                     id: product.id,
                     name: product.name,
                     price: product.price_sell,
                     qty: 1,
                     additions: additions,
-                    total: product.price_sell,
+                    total: totalPrice,
                 });
-            } else {
-                const existingItem = cart.find(item => item.id === product.id);
-                if (existingItem) {
-                    existingItem.qty++;
-                    existingItem.total = existingItem.price * existingItem.qty;
-                } else {
-                    cart.push({
-                        id: product.id,
-                        name: product.name,
-                        price: product.price_sell,
-                        qty: 1,
-                        total: product.price_sell,
-                    });
-                }
             }
 
             $js.countCart();
@@ -295,13 +441,14 @@ new #[Layout('components.layouts.fe')] class extends Component {
         });
 
 
+
         Livewire.on('remove-url-param', ({ param }) => {
             removeUrlParam(param);
         });
     </script>
 @endscript
 
-<div>
+<div x-data="{ selectedAdditions: [] }">
     {{-- The navbar with `sticky` and `full-width` --}}
     <x-nav sticky shadow>
 
@@ -319,7 +466,7 @@ new #[Layout('components.layouts.fe')] class extends Component {
         <x-slot:actions>
             <x-badge value="Table Number: {{ $table->number ?? '0' }}" />
 
-            <button class="btn btn-ghost btn-sm" @click="$js.drawerCart" id="cart-button" wire:ignore>
+            <button class="btn btn-ghost btn-sm" @click="$js.drawerCart()" id="cart-button" wire:ignore>
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
                 </svg>
@@ -355,7 +502,7 @@ new #[Layout('components.layouts.fe')] class extends Component {
                     {{ Str::limit($product->description, 30, '...') }}
 
                         <x-slot:figure>
-                            <div @click="$js.detail({{ $product }})" class="cursor-pointer">
+                            <div @click="$js.detail(@js($product))" class="cursor-pointer">
                                 @if ($product->image)
                                 <img src="{{ asset('storage/'.$product->image) }}"  />
                                 @else
@@ -407,14 +554,14 @@ new #[Layout('components.layouts.fe')] class extends Component {
             <x-input label="Name" wire:model='customer_name' inline placeholder="Name" required />
         </div>
 
-        <div class="divide-y" >
+        <div id="cart-items"  class="divide-y" >
 
         </div>
 
         <x-slot:actions>
             <div x-data="{ show: false }" x-effect="show = $wire.cart.length > 0">
                 <x-button x-show="show" label="Reset" responsive class="btn-error" @click="$js.resetCart" />
-                <x-button x-show="show" label="Order" responsive icon="fas.check" spinner="store" class="btn-primary" />
+                <x-button x-show="show" label="Order" responsive icon="fas.check" spinner="store" wire:click="store" class="btn-primary" />
             </div>
 
         </x-slot:actions>

@@ -24,6 +24,7 @@ new #[Title('Additions')] class extends Component {
 
     public string $label = '';
     public bool $is_required = true;
+    public bool $is_multiple = false;
 
     // public ?int $id = null;
     // public bool $createItem = false;
@@ -120,6 +121,7 @@ new #[Title('Additions')] class extends Component {
         return [
             ['key' => 'label', 'label' => 'Label', 'class' => 'w-64'],
             ['key' => 'is_required', 'label' => 'Is Required', 'class' => 'w-64'],
+            ['key' => 'is_multiple', 'label' => 'Is Multiple', 'class' => 'w-64'],
             ['key' => 'created_at', 'label' => 'Created at', 'class' => 'w-64'],
         ];
     }
@@ -144,6 +146,7 @@ new #[Title('Additions')] class extends Component {
             $wire.recordId = null;
             $wire.label = '';
             $wire.is_required = true;
+            $wire.is_multiple = false;
             // $wire.items = [];
             $wire.drawer = true;
         })
@@ -155,6 +158,7 @@ new #[Title('Additions')] class extends Component {
             $wire.recordId = Addition.id;
             $wire.label = Addition.label;
             $wire.is_required = Addition.is_required == 1;
+            $wire.is_multiple = Addition.is_multiple == 1;
             $wire.dataItems(Addition.id);
             // $wire.$refresh();
 
@@ -171,7 +175,7 @@ new #[Title('Additions')] class extends Component {
 
 <div>
     <!-- HEADER -->
-    <x-header title="Categories" separator>
+    <x-header title="Additions" separator>
         <x-slot:actions>
             @can('create-addition')
                 <x-button label="Create" @click="$js.create" responsive icon="fas.plus" />
@@ -190,6 +194,9 @@ new #[Title('Additions')] class extends Component {
             @scope('cell_is_required', $data)
                 {{ $data->is_required ? 'Yes' : 'No' }}
             @endscope
+            @scope('cell_is_multiple', $data)
+                {{ $data->is_multiple ? 'Yes' : 'No' }}
+            @endscope
             @scope('cell_created_at', $data)
                 <x-formatdate :date="$data->created_at" format="d F Y H:i" />
             @endscope
@@ -205,6 +212,10 @@ new #[Title('Additions')] class extends Component {
 
             <div class="my-3">
                 <x-toggle label="Is Required?" wire:model="is_required" hint="if checked, is required" />
+            </div>
+
+            <div class="my-3">
+                <x-toggle label="Is Multiple?" wire:model="is_multiple" hint="if checked, is multiple" />
             </div>
 
             <x-slot:actions>

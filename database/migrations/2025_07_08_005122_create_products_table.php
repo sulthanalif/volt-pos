@@ -21,6 +21,7 @@ return new class extends Migration
             $table->id();
             $table->string('label');
             $table->boolean('is_required')->default(true);
+            $table->boolean('is_multiple')->default(false);
             $table->timestamps();
         });
 

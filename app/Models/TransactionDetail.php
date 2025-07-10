@@ -15,7 +15,7 @@ class TransactionDetail extends Model
         'price',
         'qty',
         'sub_price',
-        'extra'
+        'additions'
     ];
 
     public function transaction(): BelongsTo
