@@ -29,6 +29,7 @@ new #[Layout('components.layouts.fe')] class extends Component {
 
     #[Url]
     public $code;
+    // public int $table_id;
 
     public bool $allowTransaction = false;
 
@@ -78,6 +79,7 @@ new #[Layout('components.layouts.fe')] class extends Component {
             DB::beginTransaction();
 
             $transaction = Transaction::create([
+                'table_id' => $this->table->id,
                 'date' => $this->date,
                 'customer_name' => $this->customer_name,
                 'total_price' => array_sum(array_column($this->cart, 'total')),

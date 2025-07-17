@@ -74,6 +74,7 @@ new #[Title('Tables')] class extends Component {
             ['key' => 'number', 'label' => 'Number', 'class' => 'w-64'],
             ['key' => 'location', 'label' => 'Location', 'class' => 'w-64'],
             ['key' => 'capacity', 'label' => 'Capacity', 'class' => 'w-64'],
+            ['key' => 'available', 'label' => 'Available', 'class' => 'w-64'],
             ['key' => 'status', 'label' => 'Status', 'class' => 'w-64'],
             ['key' => 'created_at', 'label' => 'Created at', 'class' => 'w-64'],
         ];
@@ -124,7 +125,7 @@ new #[Title('Tables')] class extends Component {
             $wire.drawer = true;
         })
 
-        
+
     </script>
 @endscript
 
@@ -149,6 +150,9 @@ new #[Title('Tables')] class extends Component {
             @scope('cell_qr_code', $data)
                 <img  src="data:image/png;base64,{{ $data->qr_code_image }}" alt="qrcode{{ $data->qr_code }}" />
                 {{ $data->qr_code }}
+            @endscope
+            @scope('cell_available', $data)
+                <x-status :status="$data->is_available" />
             @endscope
             @scope('cell_status', $data)
                 <x-status :status="$data->status" />
@@ -190,7 +194,7 @@ new #[Title('Tables')] class extends Component {
                         <x-button label="Delete" wire:click="delete" class="btn-error text-white" responsive icon="fas.trash" wire:confirm="Are you sure?" spinner="delete" />
                     </div>
                 @endcan
-                
+
                 <x-button label="Save" responsive icon="fas.save" type="submit" spinner="save" class="btn-primary" />
             </x-slot:actions>
         </x-form>

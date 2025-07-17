@@ -75,6 +75,18 @@ class Status extends Component
                     'class' => 'badge-error'
                 ];
                 break;
+            case 'paid':
+                $this->status = [
+                    'text' => 'Paid',
+                    'class' => 'badge-success'
+                ];
+                break;
+            case 'unpaid':
+                $this->status = [
+                    'text' => 'Unpaid',
+                    'class' => 'badge-error'
+                ];
+                break;
             default:
                 $this->status = [
                     'text' => 'Pending',

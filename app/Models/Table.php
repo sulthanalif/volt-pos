@@ -5,6 +5,7 @@ namespace App\Models;
 use Milon\Barcode\DNS2D;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Table extends Model
 {
@@ -20,6 +21,7 @@ class Table extends Model
 
     protected $appends = [
         'qr_code_image',
+        'is_available'
     ];
 
     public function getQrCodeImageAttribute()
@@ -27,6 +29,8 @@ class Table extends Model
         $path = 'qrcodes/' . $this->qr_code . '.png';
         return base64_encode(Storage::disk('public')->get($path));
     }
+
+
 
     protected static function boot()
     {
@@ -53,5 +57,15 @@ class Table extends Model
                 Storage::disk('public')->put($path, base64_decode($qrCode));
             }
         });
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Transaction::class, 'table_id', 'id');
+    }
+
+    public function getIsAvailableAttribute()
+    {
+        return $this->orders()?->where('is_payment', false)->exists() ? 'unavailable' : 'available';
     }
 }

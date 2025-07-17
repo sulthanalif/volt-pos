@@ -66,6 +66,13 @@ return [
         ]
     ],
     [
+        'type' => 'item',
+        'title' => 'Orders',
+        'icon' => 'fas.gauge',
+        'link' => 'orders',
+        'can' => 'manage-orders'
+    ],
+    [
         'type' => 'sub',
         'title' => 'Settings',
         'icon' => 'fas.gear',

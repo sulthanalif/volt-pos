@@ -29,4 +29,6 @@ Route::group(['middleware' => ['auth', 'userAccessLog']], function () {
 
     Volt::route('/tables', 'tables.index')->middleware('can:manage-tables')->name('tables');
 
+
+    Volt::route('/orders', 'orders.index')->middleware('can:manage-orders')->name('orders');
 });

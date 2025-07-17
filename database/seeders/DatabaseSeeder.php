@@ -50,6 +50,12 @@ class DatabaseSeeder extends Seeder
             'manage-additions',
             'create-addition',
             'delete-addition',
+
+            'manage-orders',
+            'create-order',
+            'action-order',
+            'edit-order',
+            'delete-order',
         ];
 
         foreach ($permissions as $permission) {

@@ -17,10 +17,11 @@ return new class extends Migration
             $table->dateTime('date');
             $table->string('customer_name');
             $table->decimal('total_price', 10, 2);
+            $table->foreignId('table_id')->constrained('tables')->onDelete('cascade');
             $table->foreignId('action_by')->nullable()->constrained('users')->onDelete('cascade');
             $table->foreignId('cashier_id')->nullable()->constrained('users')->onDelete('cascade');
             $table->boolean('is_payment')->default(false);
-            $table->enum('status', ['approved', 'rejected', 'cancelled', 'pending'])->default('pending');
+            $table->enum('status', ['approved', 'rejected', 'cancelled', 'pending', 'success'])->default('pending');
             $table->timestamps();
         });
 
