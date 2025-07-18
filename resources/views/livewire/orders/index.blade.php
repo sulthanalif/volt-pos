@@ -26,7 +26,7 @@ new #[Title('Orders')] class extends Component {
 
     public int $perPage = 10;
     // public array $selected = [];
-    public array $sortBy = ['column' => 'date', 'direction' => 'asc'];
+    public array $sortBy = ['column' => 'date', 'direction' => 'desc'];
 
     public string $date = '';
     public string $customer_name = '';
@@ -89,6 +89,7 @@ new #[Title('Orders')] class extends Component {
             $this->modalPayment = false;
             $this->amount = 0;
             $this->paymentButton = false;
+            $this->modalDetail = false;
         } catch (\Exception $th) {
             DB::rollBack();
             $this->error('Failed to payment.', position: 'toast-bottom');
